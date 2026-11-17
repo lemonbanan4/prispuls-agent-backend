@@ -3,7 +3,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-# 1.0 syntax: just import Agent and Browser
 from browser_use import Agent, Browser
 
 load_dotenv(override=True)
@@ -29,25 +28,23 @@ class HuntRequest(BaseModel):
 @app.post("/api/execute")
 async def execute_hunt(request: HuntRequest):
     try:
+        # We instruct the agent to handle the screen resolution directly
         task_prompt = f"""
-        1. Go to the product page: {request.url}
-        2. Check the price. If it is greater than {request.max_price} SEK, stop immediately and report failure due to price limit.
-        3. Accept or close any cookie consent banners.
-        4. Click the button to add the item to the cart (Lägg i varukorg / Köp).
-        5. Navigate through the slide-out menu to reach the checkout page (Till kassan).
-        6. On the checkout page, look for the shipping options. Enter postal code '{request.postal_code}' and email '{request.email}' if required.
-        7. Click 'Fortsätt' and select the cheapest shipping option.
-        8. Scroll to the payment section (Välj Betalsätt). Select Credit Card (Kort).
-        9. Enter Card Number '{request.card_number}', Expiry '{request.card_expiry}', and CVC '{request.card_cvc}' into the payment form.
-        10. DO NOT click the final purchase button. Stop here and report success, confirming the payment details were entered.
+        1. First, resize the browser viewport to 1024x768 to ensure screenshots are small enough for the API proxy.
+        2. Go to the product page: {request.url}
+        3. Check the price. If it is greater than {request.max_price} SEK, stop immediately and report failure due to price limit.
+        4. Accept or close any cookie consent banners.
+        5. Click the button to add the item to the cart (Lägg i varukorg / Köp).
+        6. Navigate through the slide-out menu to reach the checkout page (Till kassan).
+        7. On the checkout page, look for the shipping options. Enter postal code '{request.postal_code}' and email '{request.email}' if required.
+        8. Click 'Fortsätt' and select the cheapest shipping option.
+        9. Scroll to the payment section (Välj Betalsätt). Select Credit Card (Kort).
+        10. Enter Card Number '{request.card_number}', Expiry '{request.card_expiry}', and CVC '{request.card_cvc}' into the payment form.
+        11. DO NOT click the final purchase button. Stop here and report success, confirming the payment details were entered.
         """
         
-        # 1.0 Syntax: Pass parameters directly to Browser to bypass proxy image limits
-        browser = Browser(
-            'chromium',
-            headless=True,
-            viewport={'width': 1024, 'height': 768}
-        )
+        # 1.0 Syntax: Clean initialization. Headless uses a 1440x900 default, which step 1 overrides.
+        browser = Browser(headless=True)
         
         agent = Agent(
             task=task_prompt,
@@ -57,7 +54,6 @@ async def execute_hunt(request: HuntRequest):
         
         result = await agent.run()
         
-        # Prevent memory leaks in the cloud container
         await browser.close()
         
         return {
