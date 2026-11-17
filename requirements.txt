@@ -3,3 +3,4 @@ uvicorn
 browser-use
 pydantic
 python-dotenv
+playwright
