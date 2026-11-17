@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from browser_use import Agent
+from browser_use import Agent, Browser
 
 # Force system to use your .env file
 load_dotenv(override=True)
@@ -42,7 +42,8 @@ async def execute_hunt(request: HuntRequest):
 
         agent = Agent(
             task=task_prompt,
-            llm="anthropic:claude-sonnet-4-5-20250929"
+            llm="anthropic:claude-sonnet-4-5-20250929",
+            browser=Browser('chromium')
         )
 
         result = await agent.run()
