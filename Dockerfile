@@ -4,6 +4,9 @@ FROM python:3.11-slim
 # Set the working directory in the container
 WORKDIR /app
 
+# Install the missing system library rqeuired to run the Playwright installed
+RUN apt-get update && apt-get install -y libatomic1
+
 # Copy the requirements file into the container
 COPY requirements.txt .
 
