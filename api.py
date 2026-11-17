@@ -44,7 +44,7 @@ async def execute_hunt(request: HuntRequest):
         """
         
         # 1.0 Syntax: Clean initialization. Headless uses a 1440x900 default, which step 1 overrides.
-        browser = Browser(headless=True)
+        browser = Browser('chromium', headless=True)
         
         agent = Agent(
             task=task_prompt,
