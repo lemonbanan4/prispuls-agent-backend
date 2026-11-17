@@ -1,0 +1,48 @@
+# === Secrets ===
+.env
+.env.*
+!.env.example
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+*.cover
+
+# === Virtual environments ===
+venv/
+.venv/
+env/
+ENV/
+
+# === Node / Next.js ===
+node_modules/
+.next/
+out/
+.npm/
+.pnpm-store/
+
+# === IDE & OS ===
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# === Misc artifacts ===
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.zip
+*.tar.gz
