@@ -5,7 +5,6 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from browser_use import Agent, Browser
 
-# Force system to use your .env file
 load_dotenv(override=True)
 
 app = FastAPI(title="Prispuls AI Agent Pipeline")
@@ -17,43 +16,47 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# The data payload from Next.js
+# Added payment fields to the payload
 class HuntRequest(BaseModel):
     url: str
     max_price: int
     email: str
     postal_code: str
+    card_number: str
+    card_expiry: str
+    card_cvc: str
 
 @app.post("/api/execute")
 async def execute_hunt(request: HuntRequest):
     try:
-        # Dynamic prompt injecting user context to bypass the shipping gotcha
+        # The ultimate autonomous prompt
         task_prompt = f"""
         1. Go to the product page: {request.url}
         2. Check the price. If it is greater than {request.max_price} SEK, stop immediately and report failure due to price limit.
         3. Accept or close any cookie consent banners.
         4. Click the button to add the item to the cart (Lägg i varukorg / Köp).
         5. Navigate through the slide-out menu to reach the checkout page (Till kassan).
-        6. On the checkout page, look for the shipping options (Leveranssätt / Fraktsätt). If the site requires a postal code to calculate shipping, enter '{request.postal_code}'.
-        7. If asked for an email for a guest checkout, enter '{request.email}'.
-        8. Click 'Fortsätt' to unlock the shipping options.
-        9. Stop and report success once shipping options are fully visible and the next step is unlocked.
+        6. On the checkout page, look for the shipping options. Enter postal code '{request.postal_code}' and email '{request.email}' if required.
+        7. Click 'Fortsätt' and select the cheapest shipping option.
+        8. Scroll to the payment section (Välj Betalsätt). Select Credit Card (Kort).
+        9. Enter Card Number '{request.card_number}', Expiry '{request.card_expiry}', and CVC '{request.card_cvc}' into the payment form.
+        10. DO NOT click the final purchase button. Stop here and report success, confirming the payment details were entered.
         """
-
+        
+        # FIX: The exact, correct Claude 3.5 model string
         agent = Agent(
             task=task_prompt,
-            llm="anthropic:claude-sonnet-4-5-20250929",
+            llm='anthropic:claude-3-5-sonnet-20241022',
             browser=Browser('chromium')
         )
-
+        
         result = await agent.run()
-
-        # Return the final agent log to the frontend
+        
         return {
-            "status": "success",
+            "status": "success", 
             "message": "Agent execution completed.",
             "telemetry": str(result)
         }
-
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
