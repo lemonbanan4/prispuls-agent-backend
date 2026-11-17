@@ -46,7 +46,7 @@ async def execute_hunt(request: HuntRequest):
         # FIX: The exact, correct Claude 3.5 model string
         agent = Agent(
             task=task_prompt,
-            llm='anthropic:claude-3-5-sonnet-20241022',
+            llm='anthropic:claude-sonnet-4-5-20250929',
             browser=Browser('chromium')
         )
         
