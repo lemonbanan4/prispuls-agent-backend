@@ -32,15 +32,20 @@ async def execute_hunt(request: HuntRequest):
         task_prompt = f"""
         1. First, resize the browser viewport to 1024x768 to ensure screenshots are small enough for the API proxy.
         2. Go to the product page: {request.url}
-        3. Check the price. If it is greater than {request.max_price} SEK, stop immediately and report failure due to price limit.
+        3. Check the price. If it is greater than {request.max_price} SEK, stop immediately and report failure.
         4. Accept or close any cookie consent banners.
-        5. Click the button to add the item to the cart (Lägg i varukorg / Köp).
+        5. Click the button to add the item to the cart (Lägg i varukorg).
         6. Navigate through the slide-out menu to reach the checkout page (Till kassan).
-        7. On the checkout page, look for the shipping options. Enter postal code '{request.postal_code}' and email '{request.email}' if required.
-        8. Click 'Fortsätt' and select the cheapest shipping option.
-        9. Scroll to the payment section (Välj Betalsätt). Select Credit Card (Kort).
-        10. Enter Card Number '{request.card_number}', Expiry '{request.card_expiry}', and CVC '{request.card_cvc}' into the payment form.
-        11. DO NOT click the final purchase button. Stop here and report success, confirming the payment details were entered.
+        7. On the checkout page, locate the postal code field. Enter '{request.postal_code}'. 
+        8. CRITICAL: After typing the postal code, press the 'Enter' key or click on the background of the page to trigger the website's shipping calculation API. Do NOT force the Fortsätt button. Wait for the shipping options to load natively, then select the cheapest one and click Fortsätt.
+        9. In the Customer Information (Kundinformation) section, fill in the following details to unlock the payment module:
+           - First Name: Liam
+           - Last Name: Högberg
+           - Phone: 0701234567
+           - Email: {request.email}
+        10. Click Fortsätt to reach the payment section (Välj Betalsätt). Wait for the payment options to fully render.
+        11. Select Credit Card (Kort). Enter Card Number '{request.card_number}', Expiry '{request.card_expiry}', and CVC '{request.card_cvc}'.
+        12. DO NOT click the final purchase button. Stop here and report success.
         """
         
         # 1.0 Syntax: Clean initialization. Headless uses a 1440x900 default, which step 1 overrides.
