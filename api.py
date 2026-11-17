@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+# 1.0 syntax: just import Agent and Browser
 from browser_use import Agent, Browser
 
 load_dotenv(override=True)
@@ -16,7 +17,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Added payment fields to the payload
 class HuntRequest(BaseModel):
     url: str
     max_price: int
@@ -29,7 +29,6 @@ class HuntRequest(BaseModel):
 @app.post("/api/execute")
 async def execute_hunt(request: HuntRequest):
     try:
-        # The ultimate autonomous prompt
         task_prompt = f"""
         1. Go to the product page: {request.url}
         2. Check the price. If it is greater than {request.max_price} SEK, stop immediately and report failure due to price limit.
@@ -43,14 +42,23 @@ async def execute_hunt(request: HuntRequest):
         10. DO NOT click the final purchase button. Stop here and report success, confirming the payment details were entered.
         """
         
-        # FIX: The exact, correct Claude 3.5 model string
+        # 1.0 Syntax: Pass parameters directly to Browser to bypass proxy image limits
+        browser = Browser(
+            'chromium',
+            headless=True,
+            viewport={'width': 1024, 'height': 768}
+        )
+        
         agent = Agent(
             task=task_prompt,
             llm='anthropic:claude-sonnet-4-5-20250929',
-            browser=Browser('chromium')
+            browser=browser
         )
         
         result = await agent.run()
+        
+        # Prevent memory leaks in the cloud container
+        await browser.close()
         
         return {
             "status": "success", 
