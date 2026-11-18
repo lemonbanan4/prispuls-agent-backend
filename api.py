@@ -53,7 +53,8 @@ async def execute_hunt(request: HuntRequest):
         
         agent = Agent(
             task=task_prompt,
-            llm='anthropic:claude-sonnet-4-5-20250929',
+            #llm='anthropic:claude-sonnet-4-5-20250929',
+            llm='google:gemini-3.8-flash',
             browser=browser
         )
         

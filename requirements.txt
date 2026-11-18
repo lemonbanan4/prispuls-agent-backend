@@ -4,3 +4,4 @@ browser-use
 pydantic
 python-dotenv
 playwright
+google-genai
