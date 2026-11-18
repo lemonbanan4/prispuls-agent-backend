@@ -92,7 +92,7 @@ async def run_agent_job(job_id: str, request: HuntRequest):
 
         agent = Agent(
             task=task_prompt,
-            llm="google:gemini-2.5-pro",
+            llm="google:gemini-3.1-pro-preview",
             browser=browser,
         )
 
