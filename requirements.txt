@@ -5,3 +5,4 @@ pydantic
 python-dotenv
 playwright
 google-genai
+stripe
