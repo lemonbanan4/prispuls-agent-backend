@@ -33,22 +33,17 @@ async def run_agent_job(job_id: str, request: HuntRequest):
     browser = None
     try:
         task_prompt = f"""
-        1. First, resize the browser viewport to 1024x768 to ensure screenshots are small enough for the API proxy.
-        2. Go to the product page: {request.url}
-        3. Check the price. If it is greater than {request.max_price} SEK, stop immediately and report failure.
-        4. Accept or close any cookie consent banners.
-        5. Click the button to add the item to the cart (Lägg i varukorg).
-        6. Navigate through the slide-out menu to reach the checkout page (Till kassan).
-        7. On the checkout page, locate the postal code field. Enter '{request.postal_code}'.
-        8. CRITICAL: After typing the postal code, press the 'Enter' key or click on the background of the page to trigger the website's shipping calculation API. Do NOT force the Fortsätt button. Wait for the shipping options to load natively, then select the cheapest one and click Fortsätt.
-        9. In the Customer Information (Kundinformation) section, fill in the following details to unlock the payment module:
-           - First Name: Liam
-           - Last Name: Högberg
-           - Phone: 0701234567
-           - Email: {request.email}
-        10. Click Fortsätt to reach the payment section (Välj Betalsätt). Wait for the payment options to fully render.
-        11. Select Credit Card (Kort). Enter Card Number '{request.card_number}', Expiry '{request.card_expiry}', and CVC '{request.card_cvc}'.
-        12. DO NOT click the final purchase button. Stop here and report success.
+        1. Resize the browser viewport to 1024x768.
+        2. Navigate to the product URL: {request.url}
+        3. Dismiss any cookie consent banners ("Acceptera alla", "Godkänn", "Tillåt alla").
+        4. Verify the product is in stock and the price is <= {request.max_price} SEK. If out of stock or over budget, stop immediately and report why.
+        5. Add the item to the cart ("Lägg i varukorg", "Köp", "Lägg till").
+        6. Open the cart and proceed to checkout ("Till kassan", "Gå till kassan"). If prompted to log in, always choose Guest Checkout ("Fortsätt som gäst", "Handla utan konto").
+        7. Enter postal code '{request.postal_code}' and press 'Enter' or click outside the field to trigger shipping calculation. Wait for shipping options to load natively, then select the cheapest home/mailbox delivery option.
+        8. Fill customer details if requested: First Name: Liam, Last Name: Högberg, Phone: 0701234567, Email: {request.email}, Street: Kungsgatan 1.
+        9. Advance to the payment section (may be embedded inside a Klarna, Briqpay, Walley, Qliro, or Adyen iframe).
+        10. Select Card payment ("Kort" / "Betalkort") and enter Card Number '{request.card_number}', Expiry '{request.card_expiry}', and CVC '{request.card_cvc}'.
+        11. STOP before clicking the final purchase/pay button ("Slutför köp" / "Betala"). Confirm the payment fields are populated and report success.
         """
 
         browser = Browser('chromium', headless=True)
