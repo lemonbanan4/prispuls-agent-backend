@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from browser_use import Agent, Browser
 
+import demo_rate_limit
 import stripe_pass
 
 load_dotenv(override=True)
@@ -47,9 +48,26 @@ class RedeemCodeRequest(BaseModel):
     code: str = Field(min_length=1)
 
 
-def require_pass_token(x_prispuls_pass: str | None) -> None:
-    if not stripe_pass.pass_token_valid(x_prispuls_pass):
-        raise HTTPException(status_code=403, detail="Valid Black Friday Pass required")
+def authorize_execute(
+    request: Request,
+    x_prispuls_pass: str | None,
+) -> str:
+    """Returns 'paid' or 'demo'. Raises when neither pass nor free demo is available."""
+    if stripe_pass.pass_token_valid(x_prispuls_pass):
+        return "paid"
+
+    ip = demo_rate_limit.client_ip_from_headers(
+        request.headers.get("x-forwarded-for"),
+        request.client.host if request.client else None,
+    )
+    if demo_rate_limit.free_demo_available(ip):
+        demo_rate_limit.consume_free_demo(ip)
+        return "demo"
+
+    raise HTTPException(
+        status_code=402,
+        detail=demo_rate_limit.DEMO_EXHAUSTED_MESSAGE,
+    )
 
 
 def create_browser() -> Browser:
@@ -85,7 +103,7 @@ async def run_agent_job(job_id: str, request: HuntRequest):
         8. Fill customer and shipping fields when requested: First name: {request.first_name}, Last name: {request.last_name}, Phone: {request.phone}, Email: {request.email}, Street: {request.street}.
         9. Advance to payment. Payment UI may be inside Klarna, Briqpay, Walley, Qliro, or Adyen iframes—switch into the correct iframe(s) before interacting with controls.
         10. Select card payment ("Kort" / "Betalkort") and enter card number '{request.card_number}', expiry '{request.card_expiry}', and CVC '{request.card_cvc}'.
-        11. STOP before clicking the final purchase or pay button (e.g. "Slutför köp", "Betala"). Confirm payment fields are populated and report success.
+        11. HARD STOP: Never click the final purchase or pay button (e.g. "Slutför köp", "Betala", "Köp nu", "Genomför köp"). Confirm payment fields are populated and report success without completing payment.
         """
 
         browser = create_browser()
@@ -161,18 +179,24 @@ async def redeem_pass_code(body: RedeemCodeRequest):
 
 @app.post("/api/execute")
 async def execute_hunt(
-    request: HuntRequest,
+    hunt: HuntRequest,
     background_tasks: BackgroundTasks,
+    raw_request: Request,
     x_prispuls_pass: str | None = Header(default=None, alias="X-Prispuls-Pass"),
 ):
-    require_pass_token(x_prispuls_pass)
+    tier = authorize_execute(raw_request, x_prispuls_pass)
     job_id = str(uuid.uuid4())
+    queued_msg = (
+        "Gratis demo köad. Agenten stoppar alltid före betalning."
+        if tier == "demo"
+        else "Job queued. Initializing browser session…"
+    )
     jobs[job_id] = {
         "status": "queued",
-        "telemetry": "Job queued. Initializing browser session…",
+        "telemetry": queued_msg,
     }
-    background_tasks.add_task(run_agent_job, job_id, request)
-    return {"job_id": job_id, "status": "queued"}
+    background_tasks.add_task(run_agent_job, job_id, hunt)
+    return {"job_id": job_id, "status": "queued", "tier": tier}
 
 
 @app.get("/api/status/{job_id}")
